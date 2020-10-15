@@ -1,0 +1,49 @@
+#!/bin/bash
+
+PGREP="pgrep"
+
+while :
+do
+
+for (( i = 1; i <= $# ; i++ ))
+do
+
+SERVICE_NAME="${!i}"
+i=$(($i+1))
+SERVICE_RESTART_NAME="${!i}"
+
+pids=`$PGREP -x $SERVICE_NAME`
+
+if [ "$pids" == "" ]
+then
+
+echo "Service $SERVICE_NAME was not working, and has been restarted!"
+$SERVICE_RESTART_NAME&
+
+else
+
+cpu=$( ps -p $pids -o %cpu | awk 'NR>1' )
+maxCPU="60.0"
+echo "$SERVICE_NAME"
+echo "%CPU $cpu"
+
+if (( $(echo "$cpu > $maxCPU" | bc -l) ));
+then
+kill -KILL $pids
+fi
+
+memRAM=$( ps -p $pids -o %mem | awk 'NR>1' )
+maxmemRAM="20.0"
+echo "%MEM $memRAM"
+
+if (( $(echo "$memRAM > $maxmemRAM" | bc -l) ));
+then
+kill -KILL $pids
+fi
+
+fi
+sleep 5
+done
+sleep 5
+done
+exit
